@@ -532,7 +532,7 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
     }
 
     this.source = null;
-    this.requests = null,
+    this.requests = null;
     this.cache = null;
     this.listeners = null;
     this.element = null;
@@ -673,17 +673,17 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
 
     if (event.type === 'keydown') {
       switch (key) {
-        case 9:
+        // Enter.
         case 13:
           this.handleSuggestionSelect({
             target: this.getSelectedSuggestion()
           });
           break;
-
+        // Up arrow.
         case 38:
           this.selectSuggestion(null, -1);
           break;
-
+        // Down arrow.
         case 40:
           this.selectSuggestion(null, 1);
           break;
@@ -696,7 +696,7 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
     }
 
     if (key === 13 && this.options.lockEnter) {
-      event.preventDefault ? event.preventDefault() : event.returnValue = false;
+      event.preventDefault();
       this.fire('enter', event);
     }
     return false;
@@ -774,7 +774,7 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
       for (i = 0; i < limit; i++) {
         suggestion = data[i];
         key = classSuggestion + '-' + (i + 1);
-        content.push('<div class="' + classSuggestion + ' ' + key + '">' + render(query, suggestion) + '</div>');
+        content.push('<li role="option" tabindex="-1" class="' + classSuggestion + ' ' + key + '">' + render(query, suggestion) + '</li>');
         suggestions[key] = suggestion;
       }
 
@@ -791,10 +791,6 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
   // Open the selector.
   showSelector: function () {
     if (this.selector) {
-      // Update position.
-      if (this.options.autoUpdateSelector === true) {
-        this.updateSelector();
-      }
       // Select first entry.
       if (this.options.autoSelectFirst === true) {
         this.selectSuggestion(1);
@@ -823,57 +819,27 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
   // Build the selector.
   createSelector: function () {
     if (!this.selector) {
-      var selector = document.createElement('div'),
-          classes = this.options.classes,
-          classSelector = classes.selector,
-          classSelected = classes.selected;
-
+      var selector = document.createElement('ul'),
+        classes = this.options.classes,
+        classSelector = classes.selector,
+        selectorId = this.element.getAttribute('id') + '-autocomplete-list';
       selector.className = classSelector;
+      selector.setAttribute('role', 'listbox');
+      selector.setAttribute('id', selectorId);
       selector.style.display = 'none';
       selector.style.overflowY = 'auto';
-
       this.selector = selector;
-      // If available, we keep a reference to the selected suggestions.
-      // It's a live HTMLCollection.
-      /*if (selector.getElementsByClassName) {
-        this.selection = selector.getElementsByClassName(classSelected);
-      }*/
-
-      this.updateSelector();
 
       SimpleAutocomplete.addEventListener(selector, 'mouseover mouseout', this.handleSuggestionOver);
       SimpleAutocomplete.addEventListener(selector, 'mousedown', this.handleSuggestionSelect);
       SimpleAutocomplete.addEventListener(selector, 'mouseup', this.focus);
 
-      document.body.appendChild(selector);
-    }
-  },
+      this.element.setAttribute('aria-owns', selectorId);
+      this.element.setAttribute('role', 'textbox');
 
-  // Update the position and size of the selector.
-  updateSelector: function () {
-    if (this.selector && this.element) {
-      var getStyle = SimpleAutocomplete.getStyle,
-          selector = this.selector,
-          documentElement = document.documentElement,
-          body = document.body,
-          bounds = this.element.getBoundingClientRect(),
-          paddingLeft = parseInt(getStyle(selector, 'paddingLeft'), 10) || 0,
-          paddingRight = parseInt(getStyle(selector, 'paddingRight'), 10) || 0,
-          borderLeft = parseInt(getStyle(selector, 'borderLeftWidth'), 10) || 0,
-          borderRight = parseInt(getStyle(selector, 'borderRightWidth'), 10) || 0,
-          scrollTop = window.pageYOffset || documentElement.scrollTop || body.scrollTop,
-          scrollLeft = window.pageXOffset || documentElement.scrollLeft || body.scrollLeft,
-          clientTop = documentElement.clientTop || body.clientTop || 0,
-          clientLeft = documentElement.clientLeft || body.clientLeft || 0,
-          top = bounds.bottom + scrollTop - clientTop,
-          left = bounds.left + scrollLeft - clientLeft;
-
-      selector.style.position = 'absolute';
-      selector.style.left = left + 'px';
-      selector.style.top = top + 'px';
-      selector.style.width = (bounds.right - bounds.left - paddingLeft - paddingRight - borderLeft - borderRight) + 'px';
+      // Insert after the input.
+      this.element.parentNode.insertBefore(selector, this.element.nextSibling);
     }
-    return this;
   },
 
   // Indicate whether the selector is shown or not.
@@ -909,7 +875,6 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
     var element = this.getSelectedSuggestion(),
         maxSuggestions = this.suggestions.length,
         selector = this.selector;
-
     if (!element) {
       if (index === null) {
         index = 0;
@@ -934,7 +899,8 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
       index = index - maxSuggestions;
     }
 
-    if ((element = selector.children[index - 1])) {
+    if (selector.children[index - 1]) {
+      element = selector.children[index - 1];
       SimpleAutocomplete.addClass(element, this.options.classes.selected);
 
       // Handle scrolling inside the selector.
@@ -945,7 +911,6 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
           heightDiff = selectorHeight - elementHeight,
           scrollDiff = element.offsetTop - selector.scrollTop,
           paddingTop = parseInt(SimpleAutocomplete.getStyle(selector, 'paddingTop'), 10) || 0;
-
       if (scrollDiff > heightDiff) {
         selector.scrollTop = element.offsetTop + paddingTop - heightDiff;
       }
@@ -1051,7 +1016,7 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
     var names = eventName.split(/\s+/), listeners, i, j, l;
     for (i = 0, l = names.length; i < l; i++) {
       eventName = names[i];
-      if ((listeners = this.listeners[eventName])) {
+      if (listeners === this.listeners[eventName]) {
         for (j = listeners.length - 1; j >= 0; j--) {
           if (listeners[j] === handler) {
             this.listeners[eventName].splice(j, 1);
@@ -1096,7 +1061,7 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
         replacements.push(escape(label.substr(result.index, result[1].length)));
       }
       if (replacements.length) {
-        return label.replace(new RegExp('(' + replacements.join('|') + ')', 'g'), '<strong>$1</strong>');
+        return label.replace(new RegExp('(' + replacements.join('|') + ')', 'g'), '<span>$1</span>');
       }
     }
     return label;

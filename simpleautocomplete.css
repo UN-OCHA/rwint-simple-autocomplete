@@ -1,13 +1,26 @@
+.simpleautocomplete-container {
+  position: relative;
+}
+
 .simpleautocomplete-selector {
   max-height: 200px;
   border: 1px solid #333;
   padding: 2px;
   background-color: #FFF;
+
+  left: 0;
+  margin: 0;
+  max-height: 200px;
+  position: absolute;
+  top: 100%;
+  width: 100%;
+  z-index: 120;
 }
 
 .simpleautocomplete-selector .simpleautocomplete-suggestion {
   font-family: Helvetica, Arial, sans-serif;
   font-size: 14px;
+  margin: 0;
   padding: 3px;
   cursor: pointer;
   color: #555555;
@@ -16,4 +29,8 @@
 .simpleautocomplete-selector .simpleautocomplete-suggestion-selected {
   background-color: #F0F0F0;
   outline: 1px solid #C0C0C0;
+}
+
+.simpleautocomplete-suggestion span {
+  font-weight: bold;
 }
