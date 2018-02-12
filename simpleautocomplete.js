@@ -1016,7 +1016,8 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
     var names = eventName.split(/\s+/), listeners, i, j, l;
     for (i = 0, l = names.length; i < l; i++) {
       eventName = names[i];
-      if (listeners === this.listeners[eventName]) {
+      if (this.listeners[eventName]) {
+        listeners = this.listeners[eventName];
         for (j = listeners.length - 1; j >= 0; j--) {
           if (listeners[j] === handler) {
             this.listeners[eventName].splice(j, 1);
