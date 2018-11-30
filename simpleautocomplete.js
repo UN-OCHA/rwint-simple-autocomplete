@@ -279,8 +279,13 @@ SimpleAutocomplete.extend = function (target) {
 };
 
 /**
-* Simple Class.
-*/
+ * Counter for the selector Ids.
+ */
+SimpleAutocomplete.nextSelectorId = 1;
+
+/**
+ * Simple Class.
+ */
 SimpleAutocomplete.Class = function () {};
 
 // Extend a class.
@@ -417,12 +422,16 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
     lockEnter: true,
     // Maximum number of concurrent requests.
     maxRequests: 8,
+    // Attach the selector to the HTML body instead of after the input.
+    attachToBody: false,
     // Automatically update the selector position before display.
     autoUpdateSelector: true,
     // Automatically select the first entry when the selector opens.
     autoSelectFirst: true,
     // Set the focus on the input element when the selector opens.
     focusOnOpen: true,
+    // Disable cache, keeping only the data for the current query.
+    disableCache: false,
 
     // Classes used to theme the autocomplete widget.
     classes: {
@@ -532,7 +541,7 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
     }
 
     this.source = null;
-    this.requests = null,
+    this.requests = null;
     this.cache = null;
     this.listeners = null;
     this.element = null;
@@ -673,17 +682,19 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
 
     if (event.type === 'keydown') {
       switch (key) {
-        case 9:
+        // Enter.
         case 13:
           this.handleSuggestionSelect({
             target: this.getSelectedSuggestion()
           });
           break;
 
+        // Arrow up.
         case 38:
           this.selectSuggestion(null, -1);
           break;
 
+        // Arrow down.
         case 40:
           this.selectSuggestion(null, 1);
           break;
@@ -763,23 +774,34 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
 
     if (data && data.length) {
       var options = this.options,
+          selector = this.selector,
           classSuggestion = options.classes.suggestion,
           limit = options.limit < data.length ? options.limit : data.length,
           render = options.render,
           content = [],
           suggestions = {length: limit + 1},
-          suggestion, i, key;
+          suggestion, i, key, listItem;
+
+      // Empty the selector.
+      while (selector.lastChild) {
+        selector.removeChild(selector.lastChild);
+      }
 
       // Add suggestions.
       for (i = 0; i < limit; i++) {
         suggestion = data[i];
         key = classSuggestion + '-' + (i + 1);
-        content.push('<div class="' + classSuggestion + ' ' + key + '">' + render(query, suggestion) + '</div>');
         suggestions[key] = suggestion;
+
+        listItem = document.createElement('li');
+        listItem.setAttribute('role', 'option');
+        listItem.setAttribute('tabindex', -1);
+        listItem.className = classSuggestion + ' ' + key;
+        listItem.innerHTML = render(query, suggestion);
+        selector.appendChild(listItem);
       }
 
       this.suggestions = suggestions;
-      this.selector.innerHTML = content.join("\n");
       this.showSelector();
     }
     else {
@@ -823,21 +845,24 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
   // Build the selector.
   createSelector: function () {
     if (!this.selector) {
-      var selector = document.createElement('div'),
+      var selector = document.createElement('ul'),
           classes = this.options.classes,
           classSelector = classes.selector,
-          classSelected = classes.selected;
+          classSelected = classes.selected,
+          elementId = this.element.getAttribute('id') || SimpleAutocomplete.nextSelectorId++,
+          selectorId = classSelector + elementId;
 
       selector.className = classSelector;
       selector.style.display = 'none';
       selector.style.overflowY = 'auto';
+      selector.setAttribute('role', 'listbox');
+      selector.setAttribute('id', selectorId);
+
+      // Update the input element.
+      this.element.setAttribute('aria-owns', selectorId);
+      this.element.setAttribute('role', 'textbox');
 
       this.selector = selector;
-      // If available, we keep a reference to the selected suggestions.
-      // It's a live HTMLCollection.
-      /*if (selector.getElementsByClassName) {
-        this.selection = selector.getElementsByClassName(classSelected);
-      }*/
 
       this.updateSelector();
 
@@ -845,13 +870,24 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
       SimpleAutocomplete.addEventListener(selector, 'mousedown', this.handleSuggestionSelect);
       SimpleAutocomplete.addEventListener(selector, 'mouseup', this.focus);
 
-      document.body.appendChild(selector);
+      // Attach to the body.
+      if (this.options.attachToBody) {
+        document.body.appendChild(selector);
+      }
+      // Add after the input.
+      else if (this.element.parentNode) {
+        this.element.parentNode.insertBefore(selector, this.element.nextSibling);
+      }
+      // The input element is not yet in the DOM, throw an error.
+      else {
+        this.handleError('Element not in the DOM.');
+      }
     }
   },
 
-  // Update the position and size of the selector.
+  // Update the position and size of the selector when attached to the body.
   updateSelector: function () {
-    if (this.selector && this.element) {
+    if (this.selector && this.element && this.options.attachToBody) {
       var getStyle = SimpleAutocomplete.getStyle,
           selector = this.selector,
           documentElement = document.documentElement,
@@ -934,7 +970,8 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
       index = index - maxSuggestions;
     }
 
-    if ((element = selector.children[index - 1])) {
+    element = selector.children[index - 1];
+    if (element) {
       SimpleAutocomplete.addClass(element, this.options.classes.selected);
 
       // Handle scrolling inside the selector.
@@ -1000,6 +1037,10 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
   // Add data to the cache with the query as key.
   setCache: function (cacheKey, data) {
     if (!this.isCached(cacheKey)) {
+      if (this.options.disableCache) {
+        // Reset the cache to keep only the data for the current query.
+        this.cache = {};
+      }
       this.cache[cacheKey] = data || [];
     }
   },
@@ -1051,7 +1092,8 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
     var names = eventName.split(/\s+/), listeners, i, j, l;
     for (i = 0, l = names.length; i < l; i++) {
       eventName = names[i];
-      if ((listeners = this.listeners[eventName])) {
+      listeners = this.listeners[eventName];
+      if (listeners) {
         for (j = listeners.length - 1; j >= 0; j--) {
           if (listeners[j] === handler) {
             this.listeners[eventName].splice(j, 1);
@@ -1096,7 +1138,7 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
         replacements.push(escape(label.substr(result.index, result[1].length)));
       }
       if (replacements.length) {
-        return label.replace(new RegExp('(' + replacements.join('|') + ')', 'g'), '<strong>$1</strong>');
+        return label.replace(new RegExp('(' + replacements.join('|') + ')', 'g'), '<span>$1</span>');
       }
     }
     return label;
