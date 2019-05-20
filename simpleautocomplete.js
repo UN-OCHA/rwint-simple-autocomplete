@@ -206,7 +206,8 @@ SimpleAutocomplete.hasClass = function (element, className) {
 };
 SimpleAutocomplete.addClass = function (element, className) {
   if (element && typeof element.className !== 'undefined' && !SimpleAutocomplete.hasClass(element, className)) {
-    element.className += (element.className.length > 0 ? ' ' : '') + className;
+    var current = SimpleAutocomplete.trim(element.className);
+    element.className = current + (current.length > 0 ? ' ' : '') + className;
   }
 };
 SimpleAutocomplete.removeClass = function (element, className) {
@@ -217,10 +218,7 @@ SimpleAutocomplete.removeClass = function (element, className) {
 
 // Trim a string.
 SimpleAutocomplete.trim = function (string){
-  var ws = /\s/, i = string.length, result = true;
-  string = string.replace(/^\s\s*/, '');
-  while (result) { result = ws.test(string.charAt(--i)); }
-  return string.slice(0, i + 1);
+  return string.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, '');
 };
 
 // Escape a string to use in regexp.
@@ -751,11 +749,17 @@ SimpleAutocomplete.Autocomplete = SimpleAutocomplete.Class.extend({
 
   // Suggestion selection callback.
   handleSuggestionSelect: function (event) {
-    var element = event.target;
-    if (element && SimpleAutocomplete.hasClass(element, this.options.classes.suggestion)) {
-      var suggestion = this.getSuggestion(element);
-      this.options.select(suggestion);
-      this.fire('selected', suggestion);
+    var element = event.target,
+        hasClass = SimpleAutocomplete.hasClass,
+        classSuggestion = this.options.classes.suggestion;
+
+    while ((element = element.parentNode) !== null) {
+      if (hasClass(element, classSuggestion)) {
+        var suggestion = this.getSuggestion(element);
+        this.options.select(suggestion);
+        this.fire('selected', suggestion);
+        return;
+      }
     }
   },
 
