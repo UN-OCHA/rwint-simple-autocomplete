@@ -15,7 +15,7 @@
   color: #555555;
 }
 
-.simpleautocomplete-selector .simpleautocomplete-suggestion-selected {
+.simpleautocomplete-selector .simpleautocomplete-suggestion[aria-selected="true"] {
   background-color: #F0F0F0;
   outline: 1px solid #C0C0C0;
 }
