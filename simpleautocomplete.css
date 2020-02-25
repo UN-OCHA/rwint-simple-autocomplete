@@ -1,25 +1,30 @@
+/* Suggestion selector. */
 .simpleautocomplete-selector {
   max-height: 200px;
-  border: 1px solid #333;
-  padding: 2px;
   margin: 0;
-  background-color: #FFF;
+  padding: 2px;
+  border: 1px solid #333;
+  background-color: #fff;
+  overflow-y: auto;
 }
-
+.simpleautocomplete-selector[hidden] {
+  display: none;
+}
+/* Suggestion. */
 .simpleautocomplete-selector .simpleautocomplete-suggestion {
+  margin: 0;
+  padding: 3px;
+  color: #555555;
   font-family: Helvetica, Arial, sans-serif;
   font-size: 14px;
-  padding: 3px;
-  margin: 0;
   cursor: pointer;
-  color: #555555;
 }
-
+/* Selected suggestion. */
 .simpleautocomplete-selector .simpleautocomplete-suggestion[aria-selected="true"] {
-  background-color: #F0F0F0;
-  outline: 1px solid #C0C0C0;
+  background-color: #f0f0f0;
+  outline: 1px solid #c0c0c0;
 }
-
+/* Highlighted text in the suggestion. */
 .simpleautocomplete-selector .simpleautocomplete-suggestion span {
   font-weight: bold;
 }

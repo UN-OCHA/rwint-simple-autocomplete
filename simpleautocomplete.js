@@ -855,14 +855,13 @@
 
     // Open the selector.
     showSelector: function () {
-      if (this.selector) {
+      if (this.selector && this.selector.hasAttribute('hidden')) {
         // Select first entry.
         if (this.options.autoSelectFirst === true) {
           this.selectSuggestion(1);
         }
         // Show the selector.
         this.selector.removeAttribute('hidden');
-        this.selector.style.display = 'block';
         // Focus the input element.
         if (this.options.focusOnOpen === true) {
           this.focus();
@@ -875,10 +874,9 @@
 
     // Close the selector.
     hideSelector: function () {
-      if (this.selector) {
+      if (this.selector && !this.selector.hasAttribute('hidden')) {
         this.selector.scrollTop = 0;
         this.selector.setAttribute('hidden', '');
-        this.selector.style.display = 'none';
         this.fire('closed');
       }
       return this;
@@ -903,8 +901,6 @@
         selector.setAttribute('role', 'listbox');
         selector.setAttribute('id', selectorId);
         selector.setAttribute('hidden', '');
-        selector.style.display = 'none';
-        selector.style.overflowY = 'auto';
 
         // Update the input element.
         SimpleAutocomplete.addClass(this.element, namespace + '-input');
